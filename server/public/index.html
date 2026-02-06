@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 32px; }
+        .header h1 { font-size: 28px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+        .header p { font-size: 13px; color: #64748b; }
+        .refresh-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+        .refresh-btn:hover { border-color: #475569; color: #e2e8f0; }
+        .loading { text-align: center; padding: 40px; color: #64748b; }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+        @media (max-width: 768px) { .stats-row { grid-template-columns: 1fr; } .main-grid { grid-template-columns: 1fr !important; } }
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+        .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 8px; }
+        .stat-value { font-size: 26px; font-weight: 700; color: #f1f5f9; }
+        .stat-sub { font-size: 12px; color: #22c55e; margin-top: 4px; }
+
+        /* Layout */
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .section-title { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 14px; }
+
+        /* Workout Cards */
+        .workout-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+        .workout-head { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .workout-head:hover { background: #0f172a; }
+        .workout-date { font-size: 13px; color: #cbd5e1; font-weight: 500; }
+        .badge { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 8px; color: #fff; }
+        .badge-upper { background: #3b82f6; }
+        .badge-lower { background: #22c55e; }
+        .badge-push { background: #f97316; }
+        .badge-pull { background: #a855f7; }
+        .badge-legs { background: #ec4899; }
+        .badge-null { background: #475569; }
+        .ex-count { color: #64748b; font-size: 12px; margin-left: 8px; }
+        .chevron { color: #64748b; transition: transform 0.2s; font-size: 11px; }
+        .chevron.open { transform: rotate(180deg); }
+        .exercises { display: none; padding: 0 14px 10px; }
+        .exercises.show { display: block; }
+        .ex-row { padding: 8px 0; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .ex-row:last-child { border-bottom: none; }
+        .ex-name { color: #60a5fa; font-weight: 500; cursor: pointer; }
+        .ex-name:hover { color: #93c5fd; text-decoration: underline; }
+        .ex-detail { color: #94a3b8; }
+        .ex-notes { color: #64748b; font-size: 11px; font-style: italic; display: block; margin-top: 2px; }
+        .amrap-tag { background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #64748b; background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
+        .empty-state p { margin-bottom: 8px; }
+
+        /* Progress Panel */
+        .progress-panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+        .select-wrap select { width: 100%; padding: 9px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 13px; margin-bottom: 10px; }
+        .time-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+        .time-tab { flex: 1; padding: 7px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #94a3b8; cursor: pointer; text-align: center; font-size: 12px; font-weight: 500; }
+        .time-tab:hover { border-color: #475569; }
+        .time-tab.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+        .chart-area { position: relative; height: 260px; margin: 14px 0; }
+        .chart-svg { width: 100%; height: 100%; }
+        .chart-label { font-size: 11px; fill: #64748b; }
+        .grid-line { stroke: #334155; stroke-width: 1; }
+        .data-line { fill: none; stroke: #60a5fa; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .data-dot { fill: #60a5fa; stroke: #1e293b; stroke-width: 2; }
+        .tooltip { position: absolute; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 10; }
+        .tooltip-date { color: #94a3b8; font-size: 11px; }
+        .tooltip-val { color: #f1f5f9; font-weight: 600; }
+        .chart-summary { display: flex; gap: 12px; }
+        .chart-stat { flex: 1; background: #0f172a; border-radius: 8px; padding: 10px; }
+        .chart-stat-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .chart-stat-val { font-size: 18px; font-weight: 700; color: #f1f5f9; margin-top: 3px; }
+        .chart-stat-change { font-size: 11px; color: #22c55e; margin-top: 2px; }
+        .no-data { text-align: center; padding: 60px 20px; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Workout Tracker</h1>
+            <p>SMS-powered workout logging</p>
+            <button class="refresh-btn" onclick="loadAll()">Refresh</button>
+        </div>
+        <div class="stats-row" id="stats-row">
+            <div class="stat-card"><div class="stat-label">Workouts This Week</div><div class="stat-value" id="stat-workouts">—</div></div>
+            <div class="stat-card"><div class="stat-label">Total Volume</div><div class="stat-value" id="stat-volume">—</div><div class="stat-sub">weight x reps x sets</div></div>
+            <div class="stat-card"><div class="stat-label">Exercises Logged</div><div class="stat-value" id="stat-exercises">—</div></div>
+        </div>
+        <div class="main-grid">
+            <div>
+                <div class="section-title">Recent Workouts</div>
+                <div id="workouts-list"><div class="loading">Loading workouts...</div></div>
+            </div>
+            <div>
+                <div class="progress-panel">
+                    <div class="section-title">Progress Graph</div>
+                    <div class="select-wrap"><select id="exercise-select"><option value="">Loading...</option></select></div>
+                    <div class="time-tabs">
+                        <div class="time-tab active" data-range="30" onclick="setRange(this, 30)">30 days</div>
+                        <div class="time-tab" data-range="90" onclick="setRange(this, 90)">90 days</div>
+                        <div class="time-tab" data-range="365" onclick="setRange(this, 365)">1 year</div>
+                    </div>
+                    <div class="chart-area">
+                        <svg id="chart" class="chart-svg" viewBox="0 0 500 260" preserveAspectRatio="xMidYMid meet"></svg>
+                        <div class="tooltip" id="tooltip">
+                            <div class="tooltip-date" id="tip-date"></div>
+                            <div class="tooltip-val" id="tip-val"></div>
+                        </div>
+                    </div>
+                    <div class="chart-summary">
+                        <div class="chart-stat"><div class="chart-stat-label">Starting</div><div class="chart-stat-val" id="start-weight">—</div></div>
+                        <div class="chart-stat"><div class="chart-stat-label">Current</div><div class="chart-stat-val" id="current-weight">—</div></div>
+                        <div class="chart-stat"><div class="chart-stat-label">Change</div><div class="chart-stat-val" id="weight-change">—</div><div class="chart-stat-change" id="weight-pct"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const API = window.location.origin + '/api';
+    let currentRange = 90;
+    let exerciseNames = [];
+    let expandedCards = new Set();
+
+    // ── Load All Data ──
+    async function loadAll() {
+        await Promise.all([loadStats(), loadWorkouts(), loadExerciseNames()]);
+    }
+
+    async function loadStats() {
+        try {
+            const res = await fetch(API + '/stats/weekly');
+            const stats = await res.json();
+            document.getElementById('stat-workouts').textContent = stats.totalWorkouts;
+            document.getElementById('stat-volume').textContent = (stats.totalVolume || 0).toLocaleString() + ' lbs';
+            document.getElementById('stat-exercises').textContent = stats.totalExercises;
+        } catch (e) { console.error('Stats error:', e); }
+    }
+
+    async function loadWorkouts() {
+        try {
+            const res = await fetch(API + '/workouts?limit=20');
+            const workouts = await res.json();
+            const list = document.getElementById('workouts-list');
+
+            if (!workouts.length) {
+                list.innerHTML = '<div class="empty-state"><p>No workouts yet!</p><p>Text your Twilio number to log a workout.</p></div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            workouts.forEach((w, idx) => {
+                const card = document.createElement('div');
+                card.className = 'workout-card';
+                const type = (w.type || 'unknown').toLowerCase();
+                const badgeClass = 'badge badge-' + type;
+                const dateStr = new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const isOpen = expandedCards.has(idx) || idx < 2;
+                if (isOpen) expandedCards.add(idx);
+
+                let exHTML = '';
+                w.exercises.forEach(ex => {
+                    const reps = ex.reps === null ? '<span class="amrap-tag">AMRAP</span>' : ex.reps + ' reps';
+                    const weight = ex.weight !== null ? ex.weight + ' lbs' : 'BW';
+                    const notes = ex.notes ? '<span class="ex-notes">' + ex.notes + '</span>' : '';
+                    exHTML += '<div class="ex-row"><div><span class="ex-name" onclick="selectExercise(\'' + ex.name.replace(/'/g, "\\'") + '\')">' + ex.name + '</span>' + notes + '</div><span class="ex-detail">' + weight + ' &times; ' + reps + '</span></div>';
+                });
+
+                card.innerHTML =
+                    '<div class="workout-head" onclick="toggleCard(' + idx + ', this)">' +
+                        '<div><span class="workout-date">' + dateStr + '</span><span class="' + badgeClass + '">' + (w.type || '?') + '</span>' +
+                        '<span class="ex-count">' + w.exercises.length + ' exercises</span></div>' +
+                        '<span class="chevron' + (isOpen ? ' open' : '') + '">&#9660;</span>' +
+                    '</div>' +
+                    '<div class="exercises' + (isOpen ? ' show' : '') + '">' + exHTML + '</div>';
+                list.appendChild(card);
+            });
+        } catch (e) {
+            console.error('Workouts error:', e);
+            document.getElementById('workouts-list').innerHTML = '<div class="empty-state">Error loading workouts</div>';
+        }
+    }
+
+    async function loadExerciseNames() {
+        try {
+            const res = await fetch(API + '/exercises/names');
+            const names = await res.json();
+            exerciseNames = names;
+            const sel = document.getElementById('exercise-select');
+            sel.innerHTML = '';
+            if (!names.length) {
+                sel.innerHTML = '<option value="">No exercises yet</option>';
+                return;
+            }
+            names.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n.name;
+                opt.textContent = n.name + ' (' + n.count + ')';
+                sel.appendChild(opt);
+            });
+            sel.addEventListener('change', loadProgress);
+            loadProgress();
+        } catch (e) { console.error('Names error:', e); }
+    }
+
+    async function loadProgress() {
+        const name = document.getElementById('exercise-select').value;
+        if (!name) return;
+        try {
+            const res = await fetch(API + '/exercises/progress?name=' + encodeURIComponent(name) + '&days=' + currentRange);
+            const data = await res.json();
+            drawChart(data);
+        } catch (e) { console.error('Progress error:', e); }
+    }
+
+    function toggleCard(idx, head) {
+        const exDiv = head.nextElementSibling;
+        const chevron = head.querySelector('.chevron');
+        if (expandedCards.has(idx)) {
+            expandedCards.delete(idx);
+            exDiv.classList.remove('show');
+            chevron.classList.remove('open');
+        } else {
+            expandedCards.add(idx);
+            exDiv.classList.add('show');
+            chevron.classList.add('open');
+        }
+    }
+
+    function selectExercise(name) {
+        const sel = document.getElementById('exercise-select');
+        sel.value = name;
+        loadProgress();
+    }
+
+    function setRange(el, days) {
+        currentRange = days;
+        document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        loadProgress();
+    }
+
+    // ── Chart ──
+    function drawChart(data) {
+        const svg = document.getElementById('chart');
+        svg.innerHTML = '';
+
+        if (!data || !data.length) {
+            svg.innerHTML = '<text x="250" y="130" text-anchor="middle" class="chart-label" style="font-size:14px">No data for this exercise</text>';
+            document.getElementById('start-weight').textContent = '—';
+            document.getElementById('current-weight').textContent = '—';
+            document.getElementById('weight-change').textContent = '—';
+            document.getElementById('weight-pct').textContent = '';
+            return;
+        }
+
+        const filtered = data.filter(d => d.weight !== null);
+        if (!filtered.length) {
+            svg.innerHTML = '<text x="250" y="130" text-anchor="middle" class="chart-label" style="font-size:14px">No weight data recorded</text>';
+            return;
+        }
+
+        const pad = { t: 20, r: 20, b: 40, l: 55 };
+        const W = 500, H = 260;
+        const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+        const weights = filtered.map(d => d.weight);
+        const minW = Math.min(...weights) - 10, maxW = Math.max(...weights) + 10;
+
+        function x(i) { return pad.l + (i / (filtered.length - 1 || 1)) * cw; }
+        function y(v) { return pad.t + ch - ((v - minW) / (maxW - minW || 1)) * ch; }
+
+        // Grid
+        for (let i = 0; i <= 5; i++) {
+            const val = minW + (maxW - minW) * (i / 5);
+            const yy = y(val);
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', pad.l); line.setAttribute('x2', W - pad.r);
+            line.setAttribute('y1', yy); line.setAttribute('y2', yy);
+            line.setAttribute('class', 'grid-line');
+            svg.appendChild(line);
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', pad.l - 8); label.setAttribute('y', yy + 4);
+            label.setAttribute('text-anchor', 'end'); label.setAttribute('class', 'chart-label');
+            label.textContent = Math.round(val);
+            svg.appendChild(label);
+        }
+
+        // X labels
+        const step = Math.max(1, Math.floor(filtered.length / 6));
+        filtered.forEach((d, i) => {
+            if (i % step !== 0 && i !== filtered.length - 1) return;
+            const dateStr = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', x(i)); label.setAttribute('y', H - pad.b + 18);
+            label.setAttribute('text-anchor', 'middle'); label.setAttribute('class', 'chart-label');
+            label.textContent = dateStr;
+            svg.appendChild(label);
+        });
+
+        // Area + Line
+        if (filtered.length > 1) {
+            let pathD = 'M ' + x(0) + ' ' + y(filtered[0].weight);
+            for (let i = 1; i < filtered.length; i++) pathD += ' L ' + x(i) + ' ' + y(filtered[i].weight);
+
+            const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            area.setAttribute('d', pathD + ' L ' + x(filtered.length - 1) + ' ' + (pad.t + ch) + ' L ' + x(0) + ' ' + (pad.t + ch) + ' Z');
+            area.setAttribute('fill', 'rgba(96,165,250,0.1)');
+            svg.appendChild(area);
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            line.setAttribute('d', pathD); line.setAttribute('class', 'data-line');
+            svg.appendChild(line);
+        }
+
+        // Dots + hover
+        filtered.forEach((d, i) => {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x(i)); circle.setAttribute('cy', y(d.weight));
+            circle.setAttribute('r', 5); circle.setAttribute('class', 'data-dot');
+            svg.appendChild(circle);
+
+            const hover = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            hover.setAttribute('cx', x(i)); hover.setAttribute('cy', y(d.weight));
+            hover.setAttribute('r', 15); hover.setAttribute('fill', 'transparent');
+            hover.style.cursor = 'pointer';
+            hover.addEventListener('mouseenter', () => {
+                const tip = document.getElementById('tooltip');
+                const rect = svg.getBoundingClientRect();
+                tip.style.display = 'block';
+                tip.style.left = ((x(i) / W) * rect.width + 10) + 'px';
+                tip.style.top = ((y(d.weight) / H) * rect.height - 40) + 'px';
+                document.getElementById('tip-date').textContent = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                document.getElementById('tip-val').textContent = d.weight + ' lbs' + (d.reps ? ' x ' + d.reps : '');
+                circle.setAttribute('r', 7);
+            });
+            hover.addEventListener('mouseleave', () => {
+                document.getElementById('tooltip').style.display = 'none';
+                circle.setAttribute('r', 5);
+            });
+            svg.appendChild(hover);
+        });
+
+        // Summary
+        const first = filtered[0].weight, last = filtered[filtered.length - 1].weight;
+        const change = last - first, pct = ((change / first) * 100).toFixed(1);
+        document.getElementById('start-weight').textContent = first + ' lbs';
+        document.getElementById('current-weight').textContent = last + ' lbs';
+        document.getElementById('weight-change').textContent = (change >= 0 ? '+' : '') + change + ' lbs';
+        document.getElementById('weight-change').style.color = change >= 0 ? '#22c55e' : '#ef4444';
+        document.getElementById('weight-pct').textContent = (change >= 0 ? '+' : '') + pct + '%';
+        document.getElementById('weight-pct').style.color = change >= 0 ? '#22c55e' : '#ef4444';
+    }
+
+    // Auto-refresh every 30 seconds
+    loadAll();
+    setInterval(loadAll, 30000);
+    </script>
+</body>
+</html>

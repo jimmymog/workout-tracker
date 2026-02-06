@@ -27,10 +27,7 @@ initializeDatabase();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true,
-}));
+app.use(cors());
 
 // Parse URL-encoded bodies (for Twilio webhooks)
 app.use(express.urlencoded({ extended: true }));
@@ -55,24 +52,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Serve static files from client dist directory in production
-if (NODE_ENV === 'production') {
-  const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
-  app.use(express.static(clientDistPath));
+// Serve the dashboard from the public directory
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
 
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('/*', (req, res) => {
-    const indexPath = path.join(clientDistPath, 'index.html');
-    res.sendFile(indexPath);
-  });
-}
-
-// 404 handler (only for non-SPA routes in dev)
-if (NODE_ENV === 'development') {
-  app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
-}
+// Fallback - serve index.html for the root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
 
 // Error handling middleware
 app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
