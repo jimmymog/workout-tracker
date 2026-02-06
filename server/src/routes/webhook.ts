@@ -37,16 +37,14 @@ router.post('/sms', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Validate phone number against allowed list (skip if no phones configured)
-    if (ALLOWED_PHONES.length > 0 && !ALLOWED_PHONES.includes(From)) {
-      console.warn(`Rejected SMS from unauthorized phone: ${From}. Allowed: ${ALLOWED_PHONES.join(', ')}`);
-      res.set('Content-Type', 'text/xml');
-      res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>You are not authorized to submit workouts</Message>
-</Response>`);
-      return;
-    }
+    // Phone validation disabled for now - re-enable later
+    // if (ALLOWED_PHONES.length > 0 && !ALLOWED_PHONES.includes(From)) {
+    //   console.warn(`Rejected SMS from unauthorized phone: ${From}`);
+    //   res.set('Content-Type', 'text/xml');
+    //   res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Message>Not authorized</Message></Response>`);
+    //   return;
+    // }
+    console.log(`Accepting SMS from: ${From}`);
 
     console.log(`Received workout SMS from ${From}: ${Body}`);
 
