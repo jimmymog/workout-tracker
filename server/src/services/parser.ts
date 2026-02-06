@@ -87,7 +87,13 @@ Respond ONLY with valid JSON in this exact format, no other text:
 
     console.log('Claude returned text:', textContent.text);
 
-    const parsed = JSON.parse(textContent.text);
+    // Strip markdown code fences if Claude wraps the JSON in ```json ... ```
+    let jsonText = textContent.text.trim();
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+    }
+
+    const parsed = JSON.parse(jsonText);
     console.log('Parsed JSON:', JSON.stringify(parsed));
 
     const result = validateAndNormalizeParsedWorkout(parsed);
