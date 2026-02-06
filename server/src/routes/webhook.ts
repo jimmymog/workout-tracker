@@ -9,7 +9,12 @@ import { createWorkoutFromText } from '../services/workout.js';
 const router = Router();
 
 // List of allowed phone numbers that can submit workouts via SMS
-const ALLOWED_PHONES = (process.env.ALLOWED_PHONES || '').split(',').map((p) => p.trim());
+const ALLOWED_PHONES = (process.env.ALLOWED_PHONES || '')
+  .split(',')
+  .map((p) => p.trim())
+  .filter((p) => p.length > 0);
+
+console.log('ALLOWED_PHONES configured:', ALLOWED_PHONES);
 
 /**
  * POST /webhook/sms
@@ -18,6 +23,8 @@ const ALLOWED_PHONES = (process.env.ALLOWED_PHONES || '').split(',').map((p) => 
 router.post('/sms', async (req: Request, res: Response): Promise<void> => {
   try {
     const { Body, From } = req.body;
+    console.log('Incoming SMS - From:', From, 'Body:', Body);
+    console.log('Checking against allowed phones:', ALLOWED_PHONES);
 
     // Validate required fields
     if (!Body || !From) {
@@ -30,9 +37,9 @@ router.post('/sms', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Validate phone number against allowed list
+    // Validate phone number against allowed list (skip if no phones configured)
     if (ALLOWED_PHONES.length > 0 && !ALLOWED_PHONES.includes(From)) {
-      console.warn(`Rejected SMS from unauthorized phone: ${From}`);
+      console.warn(`Rejected SMS from unauthorized phone: ${From}. Allowed: ${ALLOWED_PHONES.join(', ')}`);
       res.set('Content-Type', 'text/xml');
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
