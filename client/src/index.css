@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  @apply transition-colors duration-200;
+}
+
+html {
+  @apply dark;
+}
+
+body {
+  @apply bg-slate-900 text-slate-100;
+}
+
+.card {
+  @apply bg-slate-800 rounded-lg p-4 border border-slate-700;
+}
+
+.card-hover {
+  @apply hover:border-slate-600 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer;
+}
+
+.badge {
+  @apply inline-block px-2 py-1 rounded text-xs font-semibold;
+}
+
+.badge-upper {
+  @apply bg-blue-900 text-blue-100;
+}
+
+.badge-lower {
+  @apply bg-green-900 text-green-100;
+}
+
+.badge-push {
+  @apply bg-orange-900 text-orange-100;
+}
+
+.badge-pull {
+  @apply bg-purple-900 text-purple-100;
+}
+
+.badge-amrap {
+  @apply bg-red-900 text-red-100;
+}
+
+.input-field {
+  @apply bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.button {
+  @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+}
+
+.button-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white;
+}
+
+.button-secondary {
+  @apply bg-slate-700 hover:bg-slate-600 text-slate-100;
+}
+
+/* Recharts customization for dark theme */
+.recharts-cartesian-axis-tick text {
+  @apply fill-slate-400;
+}
+
+.recharts-cartesian-axis-line {
+  @apply stroke-slate-700;
+}
+
+.recharts-tooltip {
+  @apply rounded-lg;
+}
+
+.recharts-default-tooltip {
+  @apply bg-slate-800 border border-slate-700 !important;
+}
